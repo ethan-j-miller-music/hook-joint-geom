@@ -13,14 +13,14 @@
 - Direction vector is rotated local `+z` axis.
 - Forward map:
 
-\[
+$$
 n =
 \begin{bmatrix}
 \sin\theta_y \\
 -\sin\theta_x\cos\theta_y \\
 \cos\theta_x\cos\theta_y
 \end{bmatrix}
-\]
+$$
 
 - `n` is treated as a direction only (magnitude ignored in inverse map).
 
