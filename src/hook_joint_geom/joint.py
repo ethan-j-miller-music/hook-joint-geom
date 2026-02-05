@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import numpy as np
 
-from data import TendonParams
+from .data import TendonParams
 from . import core  # 只做委托，不复制实现
 
 @dataclass(frozen=True, slots=True)
