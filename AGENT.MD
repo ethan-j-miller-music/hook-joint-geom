@@ -1,131 +1,150 @@
-# AGENT.MD — hook-joint-geom
+# AGENT.MD — Codex Task Plan for hook-joint-geom
 
-## Objective
+> Goal: Improve project quality without changing the mathematical intent.
+> Scope: tests, docstrings/comments, documentation structure (README + docs/).
+> Non-goals: no algorithmic redesign, no new features beyond tests/docs.
 
-Complete the implementation of the **four core procedural functions** in `core.py`.These four functions are the **only implementation source** for the package’s math, as stated in `core.py` and `README.md`:
+## 0. Working rules (must follow)
 
-- `direction_from_angles(theta_x, theta_y) -> n (3,)`
-- `angles_from_direction(n, *, eps=1e-12, pole_theta_x=0.0) -> (theta_x, theta_y)`
-- `rope_lengths_from_angles(theta_x, theta_y, *, params: TendonParams) -> L (N,)`
-- `rope_lengths_from_direction(n, *, params: TendonParams, eps=1e-12, pole_theta_x=0.0) -> L (N,)`
+1. **Do not change the math** in `core.py` unless a bug is proven by tests.
+2. Keep `core.py` as **single source of truth**. `HookJoint` is a wrapper/delegator only.
+3. Prefer **relative imports** within the package.
+4. Any change that affects public API must be justified and minimized.
+5. All new/changed files must be formatted cleanly and pass tests.
+6. If you must change behavior, add a regression test demonstrating the bug first.
 
-The math and conventions are defined in `README.md` sections:
+---
 
-- **## 4. Forward Mapping**
-- **## 5. Inverse Mapping**
-- **## 6. Rope Length Mapping**
-- and composition for direction → rope length.
+## 1) Add core tests (create `tests/`), prioritize cross-validation
 
-## Scope & Non-Goals
+### 1.1 Create test scaffold
+- Add `tests/` directory.
+- Use `pytest` (preferred).
+- Add minimal `pytest.ini` or `pyproject.toml` test config if needed.
 
-### Must do
+### 1.2 Required tests (cross-validation focus)
+> The package exposes mappings between angles (θx, θy), direction vector n ∈ S², and tendon rope lengths.
 
-- Implement the above four functions in **closed form**.
-- Follow the fixed local frame and rotation convention:
-  - `R(theta_x, theta_y) = Rx(theta_x) * Ry(theta_y)`
-  - `n = R * e_z`
-- Use floating-point tolerant normalization and pole handling per README.
-- Replace structural parameters `r, h, phis` with `data.py::TendonParams`:
-  - `params.r`, `params.h`, `params.phis`
-- Return numpy arrays with correct shapes:
-  - `n` is shape `(3,)`
-  - `L` is shape `(N,)`, where `N = len(params.phis)`
+Implement tests that verify:
 
-### Must NOT do
+#### A) Angle ↔ Direction round-trip consistency
+1. Randomly sample a set of valid angles `(theta_x, theta_y)` within safe ranges (avoid singular boundaries initially).
+2. Compute `n = direction_from_angles(theta_x, theta_y)`.
+3. Compute `(theta_x2, theta_y2) = angles_from_direction(n, ...)`.
+4. Recompute `n2 = direction_from_angles(theta_x2, theta_y2)`.
+5. Assert:
+   - `||n - n2||` small (e.g., `<= 1e-9` or appropriate tolerance).
+   - `n` is unit length (within tolerance) OR explicitly normalize and check.
+6. Add tests around **poles/branch selection** using `pole_theta_x` where applicable:
+   - Pick a direction near the singular/pole and assert the chosen solution is consistent by comparing `n` round-trip, not raw angles.
 
-- No numerical solvers, no iterations, no tolerances beyond `eps` for pole detection.
-- No API redesign beyond the minimal signature change to use `TendonParams`.
-- Do not add new public API beyond what `__init__.py` exports (if present).
+#### B) Rope lengths consistency: (angles → lengths) vs (direction → lengths)
+1. Build a representative `TendonParams` fixture (phis 120° spacing; plausible r/h).
+2. For random `(theta_x, theta_y)`:
+   - `l1 = rope_lengths_from_angles(theta_x, theta_y, params=...)`
+   - `n  = direction_from_angles(theta_x, theta_y)`
+   - `l2 = rope_lengths_from_direction(n, params=..., eps=..., pole_theta_x=...)`
+3. Assert `l1` and `l2` are close (within tolerance).
 
-## Detailed Requirements
+#### C) HookJoint wrapper delegates correctly
+For each wrapper method in `HookJoint`, confirm output matches the corresponding `core.*` function using the same inputs (including eps/pole_theta_x/params). This is a “no duplication” safeguard.
 
-### 1) `direction_from_angles(theta_x, theta_y)`
+#### D) Input robustness sanity checks
+- Ensure functions tolerate non-unit `n` inputs if documented as allowed (normalize inside).
+- Ensure error behavior is consistent (raise with clear message) for invalid shapes (e.g., n not length-3).
+- Keep these tests aligned with current design intent (do not invent new semantics).
 
-Implement exactly the forward mapping:
+### 1.3 Test coverage targets (pragmatic)
+- At least one param fixture + multiple randomized tests with fixed RNG seed.
+- Ensure tests run fast (< 1–2 seconds).
+- Add `tox` optional only if it’s already in use; otherwise skip.
 
-n = [
-sin(theta_y),
--sin(theta_x) * cos(theta_y),
-cos(theta_x) * cos(theta_y)
-]
+### 1.4 How to run
+- Ensure `pytest -q` passes locally.
+- If CI exists, add a minimal workflow (optional; only if repo already has GitHub Actions).
 
-- Return `np.ndarray` of dtype float, shape `(3,)`.
-- Normalize the resulting direction vector to unit length before returning.
+---
 
-### 2) `angles_from_direction(n, *, eps=1e-12, pole_theta_x=0.0)`
+## 2) Fill docstrings and important comments (without clutter)
 
-Implement inverse mapping, per README:
+### 2.1 Docstring standard
+- Use concise, engineering-style docstrings:
+  - Purpose (1 sentence)
+  - Args: types + meaning
+  - Returns: type + meaning
+  - Notes: coordinate conventions, normalization, branches, eps usage
+  - Raises: for invalid inputs
+- Keep docstrings aligned with existing API names and meanings.
 
-- First normalize input direction:
+### 2.2 Where docstrings are mandatory
+- All public functions exported in `__init__.py`
+- `core.py` core mapping functions
+- `HookJoint` class and its public methods
+- `TendonParams` dataclass (fields explained)
 
-  - If `||n|| <= eps`, raise `ValueError` (invalid direction).
-  - Else `n = n / ||n||`.
-- Compute:
+### 2.3 Comments
+- Add comments only where they prevent misuse:
+  - coordinate frame assumptions
+  - branch selection / singular behavior
+  - why `eps` exists
+- Avoid redundant narration (“now we compute x”).
 
-  - `theta_y = arcsin(n_x)`
-  - `theta_x = atan2(-n_y, n_z)`
-- Pole degeneracy handling:
+---
 
-  - Pole condition corresponds to `cos(theta_y) ≈ 0`, equivalently `|n_y| <= eps` and `|n_z| <= eps` (since at pole n = [±1, 0, 0]).
-  - If pole detected, set `theta_x = pole_theta_x` (default 0.0) deterministically.
-  - `theta_y` should still be computed consistently (it will be ±pi/2 from arcsin).
-- Output ranges should match canonical conventions:
+## 3) Restructure documentation: README (user-facing) + docs/ (theory/design)
 
-  - `theta_y ∈ [-pi/2, pi/2]` naturally from `arcsin`
-  - `theta_x ∈ (-pi, pi]` naturally from `atan2` (and pole assignment should respect that).
+### 3.1 README.md must be short and user-facing
+Keep README focused on:
+- What the package does (1–2 paragraphs)
+- Installation:
+  - `pip install -e .` (dev)
+  - `pip install git+https://...@<tag>` (from GitHub)
+- Quickstart example (minimal runnable snippet)
+- API overview (list of key functions/classes)
+- Minimal “Conventions” section (only the must-know points)
+- Links to detailed docs in `docs/`
 
-### 3) `rope_lengths_from_angles(theta_x, theta_y, *, params: TendonParams)`
+Avoid:
+- long derivations
+- deep theory blocks
+- excessive internal architecture discussion
 
-Use the rope length formula from README:
+### 3.2 Create `docs/` 
+Use `docs/` directory unless repo already uses `doc/`.
+Add at least:
 
-For each tendon i with azimuth `phi_i`:
+1. `docs/conventions.md`
+   - coordinate frame definition
+   - angle definitions (θx, θy)
+   - direction vector definition and sign conventions
+   - normalization policy and tolerances
 
-- Top anchor point:
-  p_top = [ r cos(phi_i), r sin(phi_i),  h ]
-- Bottom anchor point (fixed):
-  p_bot = [ r cos(phi_i), r sin(phi_i), -h ]
+2. `docs/mapping-theory.md`
+   - the mathematical mapping overview
+   - notes about singularities/poles
+   - how `pole_theta_x` affects inverse mapping branch choice
 
-Rope connects rotated top point to fixed bottom:
-l_i = || R(theta_x, theta_y) * p_top - p_bot ||
+3. `docs/design-notes.md`
+   - “minimum & local coordinate system principle”
+   - layering:
+     - `core.py` procedural truth
+     - `HookJoint` wrapper
+   - why relative imports, why frozen dataclasses, etc.
 
-Implementation notes:
+Optional:
+- `docs/examples.md` for extended usage
+- `docs/validation.md` summarizing what tests verify
 
-- Use numpy vectorization over `phis` (preferred) but clarity is more important than micro-optimizations.
-- Construct Rx and Ry consistent with right-hand rule:
-  - Rx rotates around x-axis
-  - Ry rotates around y-axis
-  - Ensure order: Rx(theta_x) @ Ry(theta_y)
-- Return `L` as `np.ndarray` shape `(N,)`.
+### 3.3 Documentation quality bar
+- Use clear headings and bullet points.
+- Include equations if helpful, but keep them readable.
+- No contradictions with code behavior; update docs if behavior differs.
 
-### 4) `rope_lengths_from_direction(n, *, params: TendonParams, eps=1e-12, pole_theta_x=0.0)`
+---
 
-This function is pure composition:
+## 4) Deliverables checklist
 
-- (theta_x, theta_y) = angles_from_direction(n, eps=eps, pole_theta_x=pole_theta_x)
-- L = rope_lengths_from_angles(theta_x, theta_y, params=params)
-- Return L.
-
-## Code Quality Expectations
-
-- Add concise docstrings matching README terminology.
-- Add type hints (at least for inputs/outputs).
-- Validate shapes where helpful (e.g., ensure `phis` is 1D via TendonParams, but still be defensive if needed).
-- Keep dependencies minimal: numpy only.
-- Prefer deterministic behavior over “best effort”.
-
-## Acceptance Checklist
-
-- All four functions exist in `core.py` and run without stubs.
-- Signatures use `TendonParams` for structural parameters.
-- Numerical behavior:
-  - `angles_from_direction` handles non-unit vectors by normalization.
-  - Pole condition sets `theta_x = pole_theta_x` deterministically.
-  - Invalid zero vector input raises `ValueError`.
-- Matches README formulas and conventions exactly.
-- Output shapes correct and stable.
-
-## Files
-
-- `core.py`: implement the four functions (the only implementation source).
-- `README.md`: authoritative math definitions and conventions.
-- `data.py`: contains `TendonParams` dataclass; use it in `core.py`.
+- [ ] `tests/` added with pytest-based tests covering A/B/C/D above
+- [ ] `pytest -q` passes
+- [ ] Public docstrings added/updated
+- [ ] README rewritten to be concise, with links to docs
