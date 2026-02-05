@@ -1,4 +1,4 @@
-# Layer 1：HookeJointGeom，只 import functional 并转发
+# Layer 1：HookeJoint
 # joint.py
 from __future__ import annotations
 
