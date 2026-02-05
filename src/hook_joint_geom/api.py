@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import numpy as np
 
-from data import TendonParams
-from joint import HookJoint as _HookJoint  # OOP 入口（类型与命名即承诺）
-import core as _core  # 内部实现源，不建议外部直接依赖
+from .data import TendonParams
+from .joint import HookJoint as _HookJoint  # OOP 入口（类型与命名即承诺）
+from . import core as _core  # 内部实现源，不建议外部直接依赖
 
 
 # -------------------------

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from data import TendonParams
-import core  # 只做委托，不复制实现
+from . import core  # 只做委托，不复制实现
 
 @dataclass(frozen=True, slots=True)
 class HookJoint:

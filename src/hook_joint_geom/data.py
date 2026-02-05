@@ -1,7 +1,6 @@
 # 参数绑定类
 from dataclasses import dataclass
 import numpy as np
-from typing import Sequence
 
 @dataclass(frozen=True)
 class TendonParams:

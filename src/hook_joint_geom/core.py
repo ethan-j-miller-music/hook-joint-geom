@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from data import TendonParams
+from .data import TendonParams
 
 
 # Layer 0：四个函数实现（唯一实现源）
