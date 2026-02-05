@@ -22,6 +22,11 @@ class HookJoint:
     # --- Angle <-> direction ---
 
     def direction_from_angles(self, theta_x: float, theta_y: float) -> np.ndarray:
+        """Direction vector for this joint at (theta_x, theta_y).
+
+        Note: independent of structural parameters; provided as an instance method
+        for a consistent object-oriented API.
+        """
         return core.direction_from_angles(theta_x, theta_y)
 
     def angles_from_direction(self, n: np.ndarray) -> tuple[float, float]:
