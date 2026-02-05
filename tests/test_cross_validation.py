@@ -9,7 +9,7 @@ from hook_joint_geom import (
     rope_lengths_from_direction,
 )
 from hook_joint_geom import core
-from hook_joint_geom.data import TendonParams
+from hook_joint_geom import TendonParams
 
 
 @pytest.fixture
