@@ -22,8 +22,7 @@ pip install "git+https://github.com/<org>/<repo>.git@<tag>"
 
 ```python
 import numpy as np
-from hook_joint_geom import create_joint
-from hook_joint_geom.data import TendonParams
+from hook_joint_geom import create_joint, TendonParams
 
 params = TendonParams(
     r=0.01,
@@ -57,3 +56,4 @@ lengths = joint.rope_lengths_from_angles(theta_x, theta_y)
 - [Mapping theory and singularities](docs/mapping-theory.md)
 - [Design notes](docs/design-notes.md)
 - [Validation scope](docs/validation.md)
+

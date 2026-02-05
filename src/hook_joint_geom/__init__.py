@@ -1,4 +1,12 @@
-from .api import *
+from .api import (
+    create_joint,
+    direction_from_angles,
+    angles_from_direction,
+    rope_lengths_from_angles,
+    rope_lengths_from_direction,
+)
+
+from .data import TendonParams
 
 __all__ = [
     # OOP
@@ -8,4 +16,6 @@ __all__ = [
     "angles_from_direction",
     "rope_lengths_from_angles",
     "rope_lengths_from_direction",
+    # dataclass
+    "TendonParams"
 ]
